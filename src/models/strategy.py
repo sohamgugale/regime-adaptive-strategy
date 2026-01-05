@@ -1,6 +1,6 @@
 """
-Regime-adaptive multi-factor strategy with optimized weights.
-Learns optimal factor weights from in-sample data.
+Multi-factor equity strategy with regime adaptation.
+Combines factors with regime-dependent weights.
 """
 
 import numpy as np
@@ -148,20 +148,20 @@ class RegimeAdaptiveStrategy:
     
     def _scores_to_positions(self, scores: pd.DataFrame, 
                            n_long: int, n_short: int) -> pd.DataFrame:
-        """Convert scores to positions."""
-        positions = pd.DataFrame(0, index=scores.index, columns=scores.columns)
+        """Convert scores to positions with PROPER NORMALIZATION."""
+        positions = pd.DataFrame(0.0, index=scores.index, columns=scores.columns)
         
         for date in scores.index:
             valid_scores = scores.loc[date].dropna()
             
             if len(valid_scores) >= n_long + n_short:
-                # Long top N
+                # Long top N (FIXED: Equal weight normalized to 1.0 total)
                 long_stocks = valid_scores.nlargest(n_long).index
-                positions.loc[date, long_stocks] = 1
+                positions.loc[date, long_stocks] = 1.0 / n_long
                 
-                # Short bottom N
+                # Short bottom N (FIXED: Equal weight normalized to -1.0 total)
                 short_stocks = valid_scores.nsmallest(n_short).index
-                positions.loc[date, short_stocks] = -1
+                positions.loc[date, short_stocks] = -1.0 / n_short
         
         return positions
     
@@ -217,7 +217,7 @@ class RegimeAdaptiveStrategy:
     def generate_positions(self, n_long: int = 10, n_short: int = 10,
                          rebalance_frequency: int = 5) -> pd.DataFrame:
         """
-        Generate trading positions.
+        Generate trading positions with PROPER NORMALIZATION.
         
         Args:
             n_long: Number of long positions
@@ -225,12 +225,12 @@ class RegimeAdaptiveStrategy:
             rebalance_frequency: Rebalance every N days
             
         Returns:
-            DataFrame of positions
+            DataFrame of positions (sum to 0 for market neutral)
         """
         if self.signals is None:
             raise ValueError("Must calculate signals first")
         
-        positions = pd.DataFrame(0, index=self.signals.index, columns=self.signals.columns)
+        positions = pd.DataFrame(0.0, index=self.signals.index, columns=self.signals.columns)
         
         last_rebalance_date = None
         last_positions = None
@@ -242,13 +242,13 @@ class RegimeAdaptiveStrategy:
                 valid_scores = self.signals.loc[date].dropna()
                 
                 if len(valid_scores) >= n_long + n_short:
-                    # Long top N
+                    # Long top N (FIXED: Equal weight, sum to 1.0)
                     long_stocks = valid_scores.nlargest(n_long).index
-                    positions.loc[date, long_stocks] = 1
+                    positions.loc[date, long_stocks] = 1.0 / n_long
                     
-                    # Short bottom N
+                    # Short bottom N (FIXED: Equal weight, sum to -1.0)
                     short_stocks = valid_scores.nsmallest(n_short).index
-                    positions.loc[date, short_stocks] = -1
+                    positions.loc[date, short_stocks] = -1.0 / n_short
                     
                     last_positions = positions.loc[date].copy()
                     last_rebalance_date = date
@@ -266,47 +266,3 @@ class RegimeAdaptiveStrategy:
             return pd.DataFrame(self._get_default_weights(), index=[0, 1, 2])
         
         return pd.DataFrame(self.regime_weights).T
-
-
-def test_strategy():
-    """Test the strategy."""
-    from ..data.synthetic_data import SyntheticMarketGenerator
-    from .regime_detector import RegimeDetector
-    from .factor_engineer import AdvancedFactorEngineer
-    
-    print("Testing Regime Adaptive Strategy")
-    print("="*50)
-    
-    # Generate data
-    generator = SyntheticMarketGenerator(n_assets=30, n_days=500, seed=42)
-    tickers = [f'STOCK_{i:02d}' for i in range(30)]
-    prices, returns, volume, fundamentals = generator.generate_complete_dataset(tickers)
-    
-    # Detect regimes
-    benchmark = generator.generate_benchmark()
-    benchmark_returns = benchmark.pct_change().dropna().iloc[:, 0]
-    detector = RegimeDetector(benchmark_returns, n_regimes=3)
-    regimes = detector.detect_regimes_simple()
-    
-    # Engineer factors
-    engineer = AdvancedFactorEngineer(prices, returns, volume, fundamentals)
-    factors = engineer.get_factor_matrix(orthogonalize=True, n_components=6)
-    
-    # Create strategy
-    strategy = RegimeAdaptiveStrategy(factors, regimes)
-    
-    # Optimize weights on first 70% of data
-    train_end = prices.index[int(len(prices) * 0.7)]
-    optimized_weights = strategy.optimize_regime_weights(returns, train_end)
-    
-    # Generate signals and positions
-    scores = strategy.calculate_composite_score(use_optimized=True)
-    positions = strategy.generate_positions(n_long=5, n_short=5)
-    
-    print(f"\nScores shape: {scores.shape}")
-    print(f"Positions shape: {positions.shape}")
-    print(f"Average positions per day: {(positions != 0).sum(axis=1).mean():.1f}")
-
-
-if __name__ == "__main__":
-    test_strategy()
