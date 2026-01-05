@@ -254,6 +254,36 @@ def main():
     st.markdown('<div class="sub-header">Quantitative Research Project | Duke University</div>', 
                 unsafe_allow_html=True)
     
+    # Info section about the universe
+    with st.expander("ℹ️ Stock Universe & Data Information", expanded=False):
+        st.markdown("""
+        ### Current Configuration
+        
+        **Stock Universe:** 
+        - **Size:** 20 stocks (configurable up to 50)
+        - **Data Type:** Synthetic market data (for demonstration)
+        - **Time Period:** 5 years of daily data (~1,260 trading days)
+        
+        **Why Synthetic Data?**
+        The demo uses computer-generated market data that mimics real market behavior:
+        - Realistic price movements with volatility clustering
+        - Correlation between stocks (like real markets)
+        - Regime changes (bull/bear/neutral periods)
+        - Volume patterns and trading dynamics
+        
+        **Stock Tickers (Demo Labels):**
+        `AAPL, MSFT, GOOGL, AMZN, META, TSLA, NVDA, JPM, V, WMT,
+        JNJ, PG, MA, UNH, HD, DIS, BAC, ADBE, NFLX, CRM`
+        
+        *Note: These are label placeholders. The actual price data is synthetically generated
+        to demonstrate the strategy's methodology without dependency on live market data APIs.*
+        
+        **For Real Data:**
+        The framework supports real market data. Simply set `use_synthetic=False` in config.py
+        and ensure internet connectivity. The system will automatically download
+        data from Yahoo Finance.
+        """)
+    
     # Sidebar
     st.sidebar.header("⚙️ Configuration")
     
@@ -262,13 +292,16 @@ def main():
                                        help="Use synthetic market data for demonstration")
     
     st.sidebar.subheader("Strategy Parameters")
-    n_long = st.sidebar.slider("Long Positions", 5, 20, STRATEGY_CONFIG['n_long'])
-    n_short = st.sidebar.slider("Short Positions", 5, 20, STRATEGY_CONFIG['n_short'])
+    n_long = st.sidebar.slider("Long Positions", 5, 20, STRATEGY_CONFIG['n_long'],
+                               help="Number of stocks to buy (highest factor scores)")
+    n_short = st.sidebar.slider("Short Positions", 5, 20, STRATEGY_CONFIG['n_short'],
+                                help="Number of stocks to sell short (lowest factor scores)")
     rebalance_freq = st.sidebar.slider("Rebalance Frequency (days)", 1, 10, 
-                                      STRATEGY_CONFIG['rebalance_frequency'])
+                                      STRATEGY_CONFIG['rebalance_frequency'],
+                                      help="How often to adjust portfolio holdings")
     
     optimize_weights = st.sidebar.checkbox("Optimize Factor Weights", value=True,
-                                          help="Learn optimal weights from in-sample data")
+                                          help="Learn optimal factor weights from training data (prevents overfitting)")
     
     # Update strategy config
     STRATEGY_CONFIG['n_long'] = n_long
@@ -279,13 +312,34 @@ def main():
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("""
-    ### About
-    This quantitative research project implements a regime-adaptive multi-factor equity strategy with:
-    - HMM regime detection
-    - 10+ orthogonalized factors
-    - Optimized factor weights
-    - Out-of-sample validation
-    - Statistical significance testing
+    ### 📊 About This Strategy
+    
+    **What it does:**
+    This strategy automatically detects market conditions (bull/bear/neutral) 
+    and adjusts which factors to emphasize.
+    
+    **Key Components:**
+    - **Universe:** 20 stocks (synthetic demo data)
+    - **Factors:** Momentum, volatility, mean reversion, volume patterns
+    - **Regime Detection:** Machine learning (HMM) identifies 3 market states
+    - **Adaptive Weighting:** Factor importance changes with market conditions
+    
+    **How Parameters Work:**
+    - **Long/Short Positions:** How many stocks to buy vs. sell short
+    - **Rebalance Frequency:** How often to adjust the portfolio (in days)
+    - **Optimize Weights:** Learn best factor weights from historical data
+    
+    **Validation:**
+    - 70% training data, 30% testing data
+    - Statistical tests confirm results aren't due to luck
+    - Transaction costs included (15 bps total)
+    
+    **Data Source:** 
+    Currently using synthetic (simulated) market data for demonstration. 
+    The strategy framework works with real market data from Yahoo Finance, 
+    Bloomberg, or other providers.
+    
+    ---
     
     **Author:** Soham Gugale  
     **Institution:** Duke University  
@@ -546,7 +600,7 @@ def main():
         with col1:
             st.markdown("""
             **1. Data & Factors**
-            - 50 large-cap equities
+            - 20 large-cap equities
             - 10+ factors (momentum, value, quality, volatility)
             - PCA orthogonalization
             """)
