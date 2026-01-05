@@ -5,7 +5,7 @@ Centralizes all parameters for reproducibility and easy tuning.
 
 from datetime import datetime, timedelta
 
-# Data Configuration
+# Data Configuration - UPDATED TO USE REAL DATA
 DATA_CONFIG = {
     'tickers': [
         'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM',
@@ -16,15 +16,15 @@ DATA_CONFIG = {
         'AMGN', 'BMY', 'RTX', 'C', 'SBUX'
     ],
     'benchmark': 'SPY',
-    'start_date': (datetime.now() - timedelta(days=5*365)).strftime('%Y-%m-%d'),
+    'start_date': (datetime.now() - timedelta(days=3*365)).strftime('%Y-%m-%d'),
     'end_date': datetime.now().strftime('%Y-%m-%d'),
-    'use_synthetic': True,  # Set to False to try real data
+    'use_synthetic': False,  # CHANGED: Use real Yahoo Finance data
 }
 
 # Regime Detection Configuration
 REGIME_CONFIG = {
     'n_regimes': 3,
-    'method': 'hmm',  # 'hmm' or 'simple'
+    'method': 'simple',  # CHANGED: Use 'simple' instead of 'hmm' for stability
     'hmm_n_iter': 100,
     'hmm_covariance_type': 'full',
     'simple_window': 63,
@@ -33,14 +33,14 @@ REGIME_CONFIG = {
 
 # Factor Configuration
 FACTOR_CONFIG = {
-    'momentum_windows': [20, 60, 120],  # Multiple momentum horizons
+    'momentum_windows': [20, 60, 120],
     'mean_reversion_window': 20,
     'volatility_window': 20,
     'volume_window': 20,
-    'value_factors': True,
-    'quality_factors': True,
-    'orthogonalize': True,  # PCA orthogonalization
-    'n_components': 8,  # Number of principal components
+    'value_factors': False,  # CHANGED: Disable (no fundamental data)
+    'quality_factors': False,  # CHANGED: Disable (no fundamental data)
+    'orthogonalize': True,
+    'n_components': 6,  # CHANGED: Reduced from 8 (fewer factors without fundamentals)
 }
 
 # Strategy Configuration
@@ -48,22 +48,22 @@ STRATEGY_CONFIG = {
     'n_long': 10,
     'n_short': 10,
     'max_position_size': 0.1,
-    'rebalance_frequency': 5,  # days
-    'optimize_weights': True,  # Optimize regime weights on in-sample data
+    'rebalance_frequency': 5,
+    'optimize_weights': False,  # CHANGED: Disable optimization for stability
 }
 
 # Backtesting Configuration
 BACKTEST_CONFIG = {
     'initial_capital': 1_000_000,
-    'transaction_cost': 0.0010,  # 10 bps
-    'slippage': 0.0005,  # 5 bps
-    'train_test_split': 0.7,  # 70% in-sample, 30% out-of-sample
+    'transaction_cost': 0.0010,
+    'slippage': 0.0005,
+    'train_test_split': 0.7,
 }
 
 # Risk Model Configuration
 RISK_CONFIG = {
-    'estimation_window': 252,  # 1 year
-    'shrinkage_method': 'ledoit_wolf',  # 'ledoit_wolf' or 'constant'
+    'estimation_window': 252,
+    'shrinkage_method': 'ledoit_wolf',
     'var_confidence': 0.95,
     'cvar_confidence': 0.95,
 }
