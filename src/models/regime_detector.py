@@ -260,9 +260,12 @@ class RegimeDetector:
         transition_counts = np.zeros((self.n_regimes, self.n_regimes))
         
         for i in range(len(self.regimes) - 1):
-            current_regime = self.regimes.iloc[i]
-            next_regime = self.regimes.iloc[i + 1]
-            transition_counts[current_regime, next_regime] += 1
+            current_regime = int(self.regimes.iloc[i])
+            next_regime = int(self.regimes.iloc[i + 1])
+            
+            # FIX: Check if regimes are valid before indexing
+            if 0 <= current_regime < self.n_regimes and 0 <= next_regime < self.n_regimes:
+                transition_counts[current_regime, next_regime] += 1
         
         # Normalize to probabilities
         row_sums = transition_counts.sum(axis=1, keepdims=True)
@@ -306,37 +309,3 @@ class RegimeDetector:
         else:
             # Uniform if no transition matrix
             return {i: 1/self.n_regimes for i in range(self.n_regimes)}
-
-
-def test_regime_detector():
-    """Test regime detection."""
-    from ..data.synthetic_data import SyntheticMarketGenerator
-    
-    print("Testing Regime Detector")
-    print("="*50)
-    
-    # Generate test data
-    generator = SyntheticMarketGenerator(n_assets=1, n_days=1000, seed=42)
-    benchmark = generator.generate_benchmark()
-    returns = benchmark.pct_change().dropna().iloc[:, 0]
-    
-    # Test HMM method
-    detector_hmm = RegimeDetector(returns, n_regimes=3)
-    regimes_hmm = detector_hmm.detect_regimes_hmm()
-    
-    print("\nHMM Regime Statistics:")
-    print(detector_hmm.get_regime_statistics().round(3))
-    
-    print("\nTransition Matrix:")
-    print(detector_hmm.get_transition_matrix().round(3))
-    
-    # Test simple method
-    detector_simple = RegimeDetector(returns, n_regimes=3)
-    regimes_simple = detector_simple.detect_regimes_simple()
-    
-    print("\nSimple Regime Statistics:")
-    print(detector_simple.get_regime_statistics().round(3))
-
-
-if __name__ == "__main__":
-    test_regime_detector()
